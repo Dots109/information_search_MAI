@@ -1,0 +1,32 @@
+database:
+  uri: "mongodb://mongodb:27017"
+  database_name: "history_search"
+  collection: "documents"
+
+crawler:
+  user_agent: "HistorySearchBot/1.0"
+  delay_ms: 5
+  timeout_secs: 30
+  max_workers: 8
+  max_depth: 3
+  max_documents: 1000 
+  recheck_hours: 168
+
+sources:
+  - name: "Wikipedia_History"
+    start_urls:
+      - "https://ru.wikipedia.org/wiki/История_России"
+      - "https://ru.wikipedia.org/wiki/Древняя_Русь"
+      - "https://ru.wikipedia.org/wiki/Российская_империя"
+      - "https://ru.wikipedia.org/wiki/СССР"
+      - "https://ru.wikipedia.org/wiki/Киевская_Русь"
+      - "https://ru.wikipedia.org/wiki/Великая_Отечественная_война"
+      - "https://ru.wikipedia.org/wiki/Московское_царство"
+      - "https://ru.wikipedia.org/wiki/Российская_Федерация"
+    use_sitemap: false
+
+  - name: "History_RU"
+    start_urls:
+      - "https://histrf.ru/"
+      - "https://histrf.ru/articles"
+    use_sitemap: false

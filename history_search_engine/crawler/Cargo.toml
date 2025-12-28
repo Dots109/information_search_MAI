@@ -1,0 +1,20 @@
+[package]
+name = "history-crawler"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tokio = { version = "1.35", features = ["full"] }
+reqwest = { version = "0.11", features = ["json"] }
+scraper = "0.18"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+serde_yaml = "0.9"
+mongodb = "2.7"
+url = "2.5"
+chrono = "0.4"
+regex = "1.10"
+sha2 = "0.10"
+log = "0.4"
+env_logger = "0.11"
+futures = "0.3"

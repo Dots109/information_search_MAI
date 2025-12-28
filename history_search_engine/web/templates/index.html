@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>History Search Engine</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+        }
+        
+        .header h1 {
+            font-size: 3em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        
+        .search-box {
+            background: white;
+            border-radius: 50px;
+            padding: 10px 20px;
+            display: flex;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+        }
+        
+        .search-box input {
+            flex: 1;
+            border: none;
+            outline: none;
+            font-size: 18px;
+            padding: 10px;
+        }
+        
+        .search-box button {
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            padding: 12px 30px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        
+        .search-box button:hover {
+            background: #764ba2;
+        }
+        
+        .stats {
+            background: rgba(255,255,255,0.2);
+            border-radius: 15px;
+            padding: 15px;
+            margin-bottom: 20px;
+            color: white;
+            text-align: center;
+        }
+        
+        .result {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+        
+        .result:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+        }
+        
+        .result-url {
+            color: #667eea;
+            text-decoration: none;
+            font-size: 18px;
+            font-weight: 600;
+            display: block;
+            margin-bottom: 8px;
+        }
+        
+        .result-url:hover {
+            text-decoration: underline;
+        }
+        
+        .result-snippet {
+            color: #555;
+            line-height: 1.6;
+        }
+        
+        .result-source {
+            display: inline-block;
+            background: #f0f0f0;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            color: #666;
+            margin-top: 8px;
+        }
+        
+        mark {
+            background: #ffeb3b;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-weight: bold;
+        }
+        
+        .loading {
+            text-align: center;
+            color: white;
+            font-size: 18px;
+            padding: 40px;
+        }
+        
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 30px;
+        }
+        
+        .pagination button {
+            background: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s;
+        }
+        
+        .pagination button:hover:not(:disabled) {
+            background: #667eea;
+            color: white;
+        }
+        
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .no-results {
+            background: white;
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔍 History Search</h1>
+            <p>Поиск по историческим документам</p>
+        </div>
+        
+        <div class="stats" id="stats">
+            Загрузка статистики...
+        </div>
+        
+        <div class="search-box">
+            <input type="text" id="searchInput" placeholder="Введите запрос (например: война, царь, революция)..." />
+            <button onclick="search()">Искать</button>
+        </div>
+        
+        <div id="results"></div>
+        <div id="pagination"></div>
+    </div>
+    
+    <script>
+        let currentPage = 1;
+        let currentQuery = '';
+        
+        document.getElementById('searchInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                search();
+            }
+        });
+        
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/stats');
+                const data = await response.json();
+                
+                let sourcesHtml = data.sources.map(s => `${s._id}: ${s.count}`).join(' | ');
+                document.getElementById('stats').innerHTML = 
+                    `📚 Всего документов: ${data.total_documents} | ${sourcesHtml}`;
+            } catch (error) {
+                console.error('Error loading stats:', error);
+            }
+        }
+        
+        async function search(page = 1) {
+            const query = document.getElementById('searchInput').value.trim();
+            
+            if (!query) {
+                document.getElementById('results').innerHTML = 
+                    '<div class="no-results">Введите поисковый запрос</div>';
+                return;
+            }
+            
+            currentQuery = query;
+            currentPage = page;
+            
+            document.getElementById('results').innerHTML = 
+                '<div class="loading">⏳ Поиск...</div>';
+            
+            try {
+                const response = await fetch(`/api/search?q=${encodeURIComponent(query)}&page=${page}`);
+                const data = await response.json();
+                
+                if (data.results.length === 0) {
+                    document.getElementById('results').innerHTML = 
+                        '<div class="no-results">Ничего не найдено. Попробуйте другой запрос.</div>';
+                    document.getElementById('pagination').innerHTML = '';
+                    return;
+                }
+                
+                let html = `<div style="color: white; margin-bottom: 20px; text-align: center;">
+                    Найдено: ${data.total} результатов | Страница ${data.page} из ${data.pages}
+                </div>`;
+                
+                data.results.forEach(result => {
+                    html += `
+                        <div class="result">
+                            <a href="${result.url}" target="_blank" class="result-url">${result.url}</a>
+                            <div class="result-snippet">${result.snippet}</div>
+                            <span class="result-source">${result.source}</span>
+                        </div>
+                    `;
+                });
+                
+                document.getElementById('results').innerHTML = html;
+                
+                renderPagination(data.page, data.pages);
+            } catch (error) {
+                document.getElementById('results').innerHTML = 
+                    '<div class="no-results">❌ Ошибка поиска. Попробуйте позже.</div>';
+                console.error('Error:', error);
+            }
+        }
+        
+        function renderPagination(current, total) {
+            if (total <= 1) {
+                document.getElementById('pagination').innerHTML = '';
+                return;
+            }
+            
+            let html = '<div class="pagination">';
+            
+            html += `<button onclick="search(${current - 1})" ${current === 1 ? 'disabled' : ''}>← Назад</button>`;
+            html += `<button disabled>Страница ${current} из ${total}</button>`;
+            html += `<button onclick="search(${current + 1})" ${current === total ? 'disabled' : ''}>Вперёд →</button>`;
+            
+            html += '</div>';
+            document.getElementById('pagination').innerHTML = html;
+        }
+        
+        loadStats();
+    </script>
+</body>
+</html>

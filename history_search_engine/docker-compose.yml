@@ -1,0 +1,72 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:7.0
+    container_name: history_mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - search_network
+
+  crawler:
+    build:
+      context: ./crawler
+      dockerfile: Dockerfile
+    container_name: history_crawler
+    depends_on:
+      - mongodb
+    volumes:
+      - ./crawler/config.yaml:/app/config.yaml
+      - ./data:/app/data
+    networks:
+      - search_network
+    environment:
+      - RUST_LOG=info
+
+  search_engine:
+    build:
+      context: ./engine
+      dockerfile: Dockerfile
+    container_name: history_search_engine
+    depends_on:
+      - mongodb
+    volumes:
+      - ./data:/app/data
+      - ./output:/app/output
+    networks:
+      - search_network
+
+  visualization:
+    build:
+      context: ./visualization
+      dockerfile: Dockerfile
+    container_name: history_visualization
+    depends_on:
+      - search_engine
+    volumes:
+      - ./output:/app/output
+      - ./graphs:/app/graphs
+    networks:
+      - search_network
+
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    container_name: history_web
+    ports:
+      - "5000:5000"
+    depends_on:
+      - mongodb
+    networks:
+      - search_network
+
+volumes:
+  mongodb_data:
+
+networks:
+  search_network:
+    driver: bridge
